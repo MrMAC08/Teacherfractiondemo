@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fraction Visualiser – Teacher (Improper‑friendly)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background:#eef4f9; padding:20px; text-align:center; }
+    input { padding:8px; font-size:16px; width:100px; text-align:center; margin-bottom:10px; }
+    .btn { padding:8px 14px; background:#4caf50; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:14px; }
+    .nav button { padding:10px 16px; margin:0 6px; background:#1976d2; color:#fff; border:none; border-radius:6px; font-size:15px; cursor:pointer; }
+    section { display:none; background:#fff; padding:20px; max-width:640px; margin:auto; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,.1); }
+    section.active { display:block; }
+    canvas { margin-top:20px; }
+  </style>
+</head>
+<body>
+  <h1>📏 Fraction Visualiser</h1>
+  <p>Enter a fraction (proper or improper):</p>
+  <input id="fractionInput" type="text" placeholder="e.g. 7/5">
+  <button class="btn" onclick="updateVisual()">Show</button>
+
+  <div class="nav">
+    <button onclick="show('pie')">🥧 Pie Chart</button>
+    <button onclick="show('line')">📏 Number Line</button>
+  </div>
+
+  <section id="pie" class="active">
+    <h2>Pie Chart</h2>
+    <canvas id="pieCanvas" width="260" height="260"></canvas>
+  </section>
+
+  <section id="line">
+    <h2>Number Line</h2>
+    <canvas id="lineCanvas" width="640" height="160"></canvas>
+  </section>
+
+<script>
+let pieChart;
+function show(tab){ document.querySelectorAll('section').forEach(s=>s.classList.remove('active')); document.getElementById(tab).classList.add('active'); }
+
+function updateVisual(){
+  const val=document.getElementById('fractionInput').value.trim();
+  if(!/^\d+\/\d+$/.test(val)) return;
+  let [num,den]=val.split('/').map(Number);
+  if(den===0) return;
+
+  
+  /* PIE */
+  const pieArea = document.getElementById('pie');
+  pieArea.innerHTML = '<h2>Pie Chart</h2>'; // clear and reset
+
+  const totalPies = Math.floor(num / den) + (num % den > 0 ? 1 : 0);
+  const piesContainer = document.createElement('div');
+  piesContainer.style.display = 'flex';
+  piesContainer.style.justifyContent = 'center';
+  piesContainer.style.gap = '20px';
+
+  for (let p = 0; p < totalPies; p++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 200;
+    piesContainer.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    let fillParts = den;
+    if (p === totalPies - 1 && num % den !== 0) {
+      fillParts = num % den;
+    }
+    const slices = Array(den).fill(1);
+    const colors = slices.map((_, i) => i < fillParts ? '#4caf50' : '#f44336');
+    if (fillParts === den) colors.fill('#4caf50');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: slices.map((_, i) => i + 1),
+        datasets: [{
+          data: slices,
+          backgroundColor: colors,
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+  pieArea.appendChild(piesContainer);
+
+
+  /* LINE */
+  const canvas=document.getElementById('lineCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const padding=50;
+  const baseY=80;
+  const units=Math.ceil(num/den);
+  const startX=padding;
+  const endX=canvas.width-padding;
+  const unitW=(endX-startX)/units;
+
+  // main line
+  ctx.strokeStyle='#000'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(startX,baseY); ctx.lineTo(endX,baseY); ctx.stroke();
+
+  ctx.textAlign='center'; ctx.font='14px Arial';
+  const tickH=12;
+
+  for(let u=0;u<=units;u++){
+    const x=startX+u*unitW;
+    ctx.beginPath(); ctx.moveTo(x,baseY-tickH/2); ctx.lineTo(x,baseY+tickH/2); ctx.stroke();
+    ctx.fillText(u,x,baseY+tickH+14); // integer labels (0,1,2…)
+    if(u<units){
+      // inner ticks (no labels)
+      for(let d=1; d<den; d++){
+        const ix=x+d*(unitW/den);
+        ctx.beginPath(); ctx.moveTo(ix,baseY-4); ctx.lineTo(ix,baseY+4); ctx.stroke();
+      }
+    }
+  }
+
+  // point
+  const pointX=startX + (num/den)*unitW;
+  ctx.fillStyle='#d32f2f';
+  ctx.beginPath(); ctx.arc(pointX,baseY,6,0,Math.PI*2); ctx.fill();
+}
+</script>
+</body>
+</html>
